@@ -788,6 +788,32 @@ domReady(function enableCssMediaQueries() {
 				return height > 0;
 			}
 		}
+		else if ('orientation' === feature.substring(l - 11, l)) { // orientation
+
+			width = document.documentElement.clientWidth || document.body.clientWidth; // the latter for IE quirks mode
+			height = document.documentElement.clientHeight || document.body.clientHeight; // the latter for IE quirks mode
+			
+			if (valueType === 'absolute') {
+				return (amount === 'portrait') ? (width <= height) : (width > height);
+			}
+			else {
+				return false;
+			}
+		}
+		else if ('aspect-ratio' === feature.substring(l - 12, l)) { // window aspect ratio
+			width = document.documentElement.clientWidth || document.body.clientWidth; // the latter for IE quirks mode
+			height = document.documentElement.clientHeight || document.body.clientHeight; // the latter for IE quirks mode
+
+			var curRatio = width / height;
+			var ratio = amount[1] / amount[0];
+			
+			if (valueType === 'aspect-ratio') {
+				return ((min && curRatio >= ratio) || (max && curRatio < ratio) || (!min && !max && curRatio === ratio));
+			}
+			else {
+				return false;
+			}
+		}
 		else if ('device-aspect-ratio' === feature.substring(l - 19, l)) { // screen aspect ratio
 			return valueType === 'aspect-ratio' && screen.width * amount[1] === screen.height * amount[0];
 		}
