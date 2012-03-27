@@ -92,16 +92,21 @@ var domReady = function () {
 		})();
 	}
 	window.onload = init; // fallback
-	
-	return function (fn) { // add fn to init functions
-		if (typeof fn === 'function') {
-			fns[fns.length] = fn;
-		}
-		return fn;
-	};
+
+ return function (fn) { // add fn to init functions
+    if (typeof fn === 'function') {
+      // If DOM ready has already been fired, fire the function
+      // right away.
+      if(init.done) {
+        fn();
+      } else {
+        // Add to the queue
+        fns[fns.length] = fn;
+      }
+    }
+    return fn;
+  };
 }();
-
-
 
 // helper library for parsing css to objects
 var cssHelper = function () {
