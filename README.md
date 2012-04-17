@@ -1,4 +1,4 @@
-# *css3-mediaqueries.js* - CSS Helper and CSS3 Media Queries Enabler
+### *css3-mediaqueries.js* - CSS Helper and CSS3 Media Queries Enabler
 
 *copyright (c) 2008 Wouter van der Graaf, all rights reserved*
 
