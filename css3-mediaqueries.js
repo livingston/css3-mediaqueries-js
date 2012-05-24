@@ -946,6 +946,8 @@ domReady(function enableCssMediaQueries() {
 		// determine scrollbar width in IE, see resizeHandler
 		if (ua.ie) {
 			var el = document.createElement('div');
+			el.style.width = '100px';
+			el.style.height = '100px';
 			el.style.position = 'absolute';
 			el.style.top = '-9999em';
 			el.style.overflow = 'scroll';
