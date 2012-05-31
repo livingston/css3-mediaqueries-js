@@ -545,7 +545,9 @@ var cssHelper = function () {
 			el.setAttribute('type', 'text/css');
 			document.getElementsByTagName('head')[0].appendChild(el);
 			if (el.styleSheet) { // IE
-				el.styleSheet.cssText = s;
+				try { 
+					el.styleSheet.cssText = s;
+				} catch (e) {} // IE will generate errors if it doesn't like the CSS; unless we try/catch here all processing will stop.
 			}
 			else {
 				el.appendChild(document.createTextNode(s));
