@@ -668,7 +668,6 @@ var nativeSupport = window.nativeMediaQuerySupport = (function () {
 		' { width: 1px !important; } }', false); // false means don't parse this temp style
 	document.body.appendChild(el);
 	var ret = el.offsetWidth === 1;
-	console.log(ret);
 	style.parentNode.removeChild(style);
 	el.parentNode.removeChild(el);
 	return ret;
