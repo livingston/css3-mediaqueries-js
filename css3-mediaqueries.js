@@ -65,6 +65,11 @@ var domReady = function () {
 			try {
 				// throws errors until after ondocumentready
 				document.documentElement.doScroll('left');
+				
+				// If we are in an iframe, the above does not work properly.
+        // Trying to access the length attribute of document.body, however,
+        // does throw an error until ondocumentready, fixing this issue.
+        document.body.length;
 			}
 			catch (e) {
 				setTimeout(arguments.callee, 50);
