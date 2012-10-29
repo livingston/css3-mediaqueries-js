@@ -165,6 +165,9 @@ var cssHelper = function () {
 		}
 		var r = new XMLHttpRequest();
 		try {
+			// APCIHACK - Make this library work for CDN resources.
+			url = url.replace(/^https\:\/\/[^.]+\.cloudfront\.net/g, (document.location.protocol + '//' + document.location.hostname));
+			url = url.replace('https://files.', 'https://www.');
 			r.open('get', url, true);
 			r.setRequestHeader('X_REQUESTED_WITH', 'XMLHttpRequest');
 		}
