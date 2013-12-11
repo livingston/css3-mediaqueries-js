@@ -22,3 +22,5 @@ just include the script in your pages.
 Write your media queries like you would for browsers with native support. The script will parse your CSS and apply the styles for positive media query tests realtime (also when you resize).
 
 >Note: Doesn't work on `@import`'ed stylesheets (which you shouldn't use anyway for performance reasons). Also won't listen to the media attribute of the &lt;link&gt; and &lt;style&gt; elements.
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/livingston/css3-mediaqueries-js/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
