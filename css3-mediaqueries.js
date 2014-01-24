@@ -546,17 +546,22 @@ var cssHelper = function () {
 	// public static functions
 	return {
 		addStyle: function (s, process) {
-			var el = document.createElement('style');
-			el.setAttribute('type', 'text/css');
-			document.getElementsByTagName('head')[0].appendChild(el);
-			if (el.styleSheet) { // IE
-				try { 
-					el.styleSheet.cssText = s;
-				} catch (e) {} // IE will generate errors if it doesn't like the CSS; unless we try/catch here all processing will stop.
-			}
-			else {
-				el.appendChild(document.createTextNode(s));
-			}
+			var el;
+		            if (null !== document.getElementById('css-mediaqueries-js')) {
+		                el = document.getElementById('css-mediaqueries-js');
+		            }
+		            else {
+		                el = document.createElement('style');
+		                el.setAttribute('type', 'text/css');
+		                el.setAttribute('id', 'css-mediaqueries-js');
+		                document.getElementsByTagName('head')[0].appendChild(el);
+		            }
+		            if (el.styleSheet) { // IE
+		                el.styleSheet.cssText += s;
+		            }
+		            else {
+		                el.appendChild(document.createTextNode(s));
+		            }
 			el.addedWithCssHelper = true;
 			if (typeof process === 'undefined' || process === true) {
 				cssHelper.parsed(function (parsed) {
@@ -576,7 +581,8 @@ var cssHelper = function () {
 		},
 		
 		removeStyle: function (el) {
-			return el.parentNode.removeChild(el);
+			if (el.parentNode)
+                		return el.parentNode.removeChild(el);
 		},
 		
 		parsed: function (fn) {
