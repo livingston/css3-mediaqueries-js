@@ -670,6 +670,20 @@ var cssHelper = function () {
 
 
 // function to test and apply parsed media queries against browser capabilities
+var nativeSupport = window.nativeMediaQuerySupport = (function () {
+	// check support for media queries
+	var id = 'css3-mediaqueries-test';
+	var el = document.createElement('div');
+	el.id = id;
+	var style = cssHelper.addStyle('@media all and (width) { #' + id +
+		' { width: 1px !important; } }', false); // false means don't parse this temp style
+	document.body.appendChild(el);
+	var ret = el.offsetWidth === 1;
+	style.parentNode.removeChild(style);
+	el.parentNode.removeChild(el);
+	return ret;
+}());
+	
 domReady(function enableCssMediaQueries() {
 	var meter;
 	
@@ -681,23 +695,6 @@ domReady(function enableCssMediaQueries() {
 	};
 	
 	var styles = [];
-	
-	var nativeSupport = function () {
-		// check support for media queries
-		var id = 'css3-mediaqueries-test';
-		var el = document.createElement('div');
-		el.id = id;
-		var style = cssHelper.addStyle('@media all and (width) { #' + id +
-			' { width: 1px !important; } }', false); // false means don't parse this temp style
-		document.body.appendChild(el);
-		var ret = el.offsetWidth === 1;
-		style.parentNode.removeChild(style);
-		el.parentNode.removeChild(el);
-		nativeSupport = function () {
-			return ret;
-		};
-		return ret;
-	};
 	
 	var createMeter = function () { // create measuring element
 		meter = document.createElement('div');
@@ -980,7 +977,7 @@ domReady(function enableCssMediaQueries() {
 				cvph = vph;
 				clearTimeout(timer);
 				timer = setTimeout(function () {
-					if (!nativeSupport()) {
+					if (!nativeSupport) {
 						test();
 					}
 					else {
@@ -1009,7 +1006,7 @@ domReady(function enableCssMediaQueries() {
 	}, 20000);
 	
 	return function () {
-		if (!nativeSupport()) { // if browser doesn't support media queries
+		if (!nativeSupport) { // if browser doesn't support media queries
 			cssHelper.addListener('newStyleParsed', function (el) {
 				testMediaQueryLists(el.cssHelperParsed.mediaQueryLists);
 			});
