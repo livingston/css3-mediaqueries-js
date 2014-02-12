@@ -55,7 +55,7 @@ var domReady = function () {
 			}
 		}
 	};
-	
+
 	// listeners for different browsers
 	if (document.addEventListener) {
 		document.addEventListener('DOMContentLoaded', init, false);
@@ -65,7 +65,7 @@ var domReady = function () {
 			try {
 				// throws errors until after ondocumentready
 				document.documentElement.doScroll('left');
-				
+
 				// If we are in an iframe, the above does not work properly.
         // Trying to access the length attribute of document.body, however,
         // does throw an error until ondocumentready, fixing this issue.
@@ -122,15 +122,15 @@ var cssHelper = function () {
 		DECLARATIONS: /[a-zA-Z\-]+[^;]*:[^;]+;/g,
 		RELATIVE_URLS: /url\(['"]?([^\/\)'"][^:\)'"]+)['"]?\)/g,
 		// strip whitespace and comments, @import is evil
-		REDUNDANT_COMPONENTS: /(?:\/\*([^*\\\\]|\*(?!\/))+\*\/|@import[^;]+;)/g,
+		REDUNDANT_COMPONENTS: /(?:\/\*([^*\\\\]|\*(?!\/))+\*\/|@import[^;]+;|@-moz-document url-prefix\(\) {(([^{}])+{([^{}])+}([^{}])+)+})/g,
 		REDUNDANT_WHITESPACE: /\s*(,|:|;|\{|\})\s*/g,
 		MORE_WHITESPACE: /\s{2,}/g,
 		FINAL_SEMICOLONS: /;\}/g,
 		NOT_WHITESPACE: /\S+/g
 	};
-	
+
 	var parsed, parsing = false;
-	
+
 	var waiting = [];
 	var wait = function (fn) {
 		if (typeof fn === 'function') {
@@ -153,7 +153,7 @@ var cssHelper = function () {
 			}
 		}
 	};
-	
+
 	var requestText = function (url, fnSuccess, fnFailure) {
 		if (ua.ie && !window.XMLHttpRequest) {
 			window.XMLHttpRequest = function () {
@@ -194,7 +194,7 @@ var cssHelper = function () {
 		};
 		r.send('');
 	};
-	
+
 	var sanitize = function (text) {
 		text = text.replace(regExp.REDUNDANT_COMPONENTS, '');
 		text = text.replace(regExp.REDUNDANT_WHITESPACE, '$1');
@@ -202,22 +202,22 @@ var cssHelper = function () {
 		text = text.replace(regExp.FINAL_SEMICOLONS, '}'); // optional final semicolons
 		return text;
 	};
-	
+
 	var objects = {
-		
+
 		mediaQueryList: function (s) {
 			var o = {};
 			var idx = s.indexOf('{');
 			var lt = s.substring(0, idx);
 			s = s.substring(idx + 1, s.length - 1);
 			var mqs = [], rs = [];
-			
+
 			// add media queries
 			var qts = lt.toLowerCase().substring(7).split(',');
 			for (var i = 0; i < qts.length; i++) { // parse each media query
 				mqs[mqs.length] = objects.mediaQuery(qts[i], o);
 			}
-			
+
 			// add rule sets
 			var rts = s.match(regExp.BLOCKS_INSIDE);
 			if (rts !== null) {
@@ -225,7 +225,7 @@ var cssHelper = function () {
 					rs[rs.length] = objects.rule(rts[i], o);
 				}
 			}
-			
+
 			o.getMediaQueries = function () {
 				return mqs;
 			};
@@ -240,7 +240,7 @@ var cssHelper = function () {
 			};
 			return o;
 		},
-		
+
 		mediaQuery: function (s, mql) {
 			s = s || '';
 			var not = false, type;
@@ -266,7 +266,7 @@ var cssHelper = function () {
 					};
 				}
 			}
-			
+
 			return {
 				getList: function () {
 					return mql || null;
@@ -285,7 +285,7 @@ var cssHelper = function () {
 				}
 			};
 		},
-		
+
 		rule: function (s, mql) {
 			var o = {};
 			var idx = s.indexOf('{');
@@ -296,7 +296,7 @@ var cssHelper = function () {
 			for (var i = 0; i < dts.length; i++) {
 				ds[ds.length] = objects.declaration(dts[i], o);
 			}
-			
+
 			o.getMediaQueryList = function () {
 				return mql || null;
 			};
@@ -319,7 +319,7 @@ var cssHelper = function () {
 			};
 			return o;
 		},
-		
+
 		declaration: function (s, r) {
 			var idx = s.indexOf(':');
 			var p = s.substring(0, idx);
@@ -337,7 +337,7 @@ var cssHelper = function () {
 			};
 		}
 	};
-	
+
 	var parseText = function (el) {
 		if (typeof el.cssHelperText !== 'string') {
 			return;
@@ -349,7 +349,7 @@ var cssHelper = function () {
 			declarations: [],
 			properties: {}
 		};
-		
+
 		// parse blocks and collect media query lists and rules
 		var mqls = o.mediaQueryLists;
 		var ors = o.rules;
@@ -365,7 +365,7 @@ var cssHelper = function () {
 				}
 			}
 		}
-		
+
 		// collect selectors
 		var oss = o.selectors;
 		var collectSelectors = function (r) {
@@ -381,13 +381,13 @@ var cssHelper = function () {
 		for (i = 0; i < ors.length; i++) {
 			collectSelectors(ors[i]);
 		}
-		
+
 		// collect declarations
 		var ods = o.declarations;
 		for (i = 0; i < ors.length; i++) {
 			ods = o.declarations = ods.concat(ors[i].getDeclarations());
 		}
-		
+
 		// collect properties
 		var ops = o.properties;
 		for (i = 0; i < ods.length; i++) {
@@ -397,17 +397,17 @@ var cssHelper = function () {
 			}
 			ops[n][ops[n].length] = ods[i];
 		}
-		
+
 		el.cssHelperParsed = o;
 		parsed[parsed.length] = el;
 		return o;
 	};
-	
+
 	var parseEmbedded = function (el, s) {
 		el.cssHelperText = sanitize(s || el.innerHTML); // bug in IE, where innerHTML gives us parsed css instead of raw literal
 		return parseText(el);
 	};
-	
+
 	var parse = function () {
 		parsing = true;
 		parsed = [];
@@ -455,7 +455,7 @@ var cssHelper = function () {
 			finish();
 		}
 	};
-	
+
 	var types = {
 		mediaQueryLists: 'array',
 		rules: 'array',
@@ -463,7 +463,7 @@ var cssHelper = function () {
 		declarations: 'array',
 		properties: 'object'
 	};
-	
+
 	var collections = {
 		mediaQueryLists: null,
 		rules: null,
@@ -471,7 +471,7 @@ var cssHelper = function () {
 		declarations: null,
 		properties: null
 	};
-	
+
 	var addToCollection = function (name, v) {
 		if (collections[name] !== null) {
 			if (types[name] === 'array') {
@@ -493,7 +493,7 @@ var cssHelper = function () {
 			}
 		}
 	};
-	
+
 	var collect = function (name) {
 		collections[name] = (types[name] === 'array') ? [] : {};
 		for (var i = 0; i < parsed.length; i++) {
@@ -501,14 +501,14 @@ var cssHelper = function () {
 		}
 		return collections[name];
 	};
-	
+
 	// timer for broadcasting added elements
 	domReady(function () {
 		var els = document.body.getElementsByTagName('*');
 		for (var i = 0; i < els.length; i++) {
 			els[i].checkedByCssHelper = true;
 		}
-		
+
 		if (document.implementation.hasFeature('MutationEvents', '2.0') || window.MutationEvent) {
 			document.body.addEventListener('DOMNodeInserted', function (e) {
 				var el = e.target;
@@ -530,7 +530,7 @@ var cssHelper = function () {
 			}, 1000);
 		}
 	});
-	
+
 	// viewport size
 	var getViewportSize = function (d) {
 		if (typeof window.innerWidth != 'undefined') {
@@ -579,12 +579,12 @@ var cssHelper = function () {
 			}
 			return el;
 		},
-		
+
 		removeStyle: function (el) {
 			if (el.parentNode)
                 		return el.parentNode.removeChild(el);
 		},
-		
+
 		parsed: function (fn) {
 			if (parsing) {
 				wait(fn);
@@ -601,39 +601,39 @@ var cssHelper = function () {
 				}
 			}
 		},
-		
+
 		mediaQueryLists: function (fn) {
 			cssHelper.parsed(function (parsed) {
 				fn(collections.mediaQueryLists || collect('mediaQueryLists'));
 			});
 		},
-		
+
 		rules: function (fn) {
 			cssHelper.parsed(function (parsed) {
 				fn(collections.rules || collect('rules'));
 			});
 		},
-		
+
 		selectors: function (fn) {
 			cssHelper.parsed(function (parsed) {
 				fn(collections.selectors || collect('selectors'));
 			});
 		},
-		
+
 		declarations: function (fn) {
 			cssHelper.parsed(function (parsed) {
 				fn(collections.declarations || collect('declarations'));
 			});
 		},
-		
+
 		properties: function (fn) {
 			cssHelper.parsed(function (parsed) {
 				fn(collections.properties || collect('properties'));
 			});
 		},
-		
+
 		broadcast: broadcast,
-		
+
 		addListener: function (n, fn) { // in case n is 'styleadd': added function is called everytime style is added and parsed
 			if (typeof fn === 'function') {
 				if (!events[n]) {
@@ -644,7 +644,7 @@ var cssHelper = function () {
 				events[n].listeners[events[n].listeners.length] = fn;
 			}
 		},
-		
+
 		removeListener: function (n, fn) {
 			if (typeof fn === 'function' && events[n]) {
 				var ls = events[n].listeners;
@@ -656,11 +656,11 @@ var cssHelper = function () {
 				}
 			}
 		},
-		
+
 		getViewportWidth: function () {
 			return getViewportSize("Width");
 		},
-		
+
 		getViewportHeight: function () {
 			return getViewportSize("Height");
 		}
@@ -672,16 +672,16 @@ var cssHelper = function () {
 // function to test and apply parsed media queries against browser capabilities
 domReady(function enableCssMediaQueries() {
 	var meter;
-	
+
 	var regExp = {
 		LENGTH_UNIT: /[0-9]+(em|ex|px|in|cm|mm|pt|pc)$/,
 		RESOLUTION_UNIT: /[0-9]+(dpi|dpcm)$/,
 		ASPECT_RATIO: /^[0-9]+\/[0-9]+$/,
 		ABSOLUTE_VALUE: /^[0-9]*(\.[0-9]+)*$/
 	};
-	
+
 	var styles = [];
-	
+
 	var nativeSupport = function () {
 		// check support for media queries
 		var id = 'css3-mediaqueries-test';
@@ -698,7 +698,7 @@ domReady(function enableCssMediaQueries() {
 		};
 		return ret;
 	};
-	
+
 	var createMeter = function () { // create measuring element
 		meter = document.createElement('div');
 		meter.style.cssText = 'position:absolute;top:-9999em;left:-9999em;' +
@@ -710,20 +710,20 @@ domReady(function enableCssMediaQueries() {
 		}
 		meter.style.width = '';
 	};
-	
+
 	var measure = function (value) {
 		meter.style.width = value;
 		var amount = meter.offsetWidth;
 		meter.style.width = '';
 		return amount;
 	};
-	
+
 	var testMediaFeature = function (feature, value) {
 		// non-testable features: monochrome|min-monochrome|max-monochrome|scan|grid
 		var l = feature.length;
 		var min = (feature.substring(0, 4) === 'min-');
 		var max = (!min && feature.substring(0, 4) === 'max-');
-		
+
 		if (value !== null) { // determine value type and parse to usable amount
 			var valueType;
 			var amount;
@@ -748,7 +748,7 @@ domReady(function enableCssMediaQueries() {
 				valueType = 'unknown';
 			}
 		}
-		
+
 		var width, height;
 		if ('device-width' === feature.substring(l - 12, l)) { // screen width
 			width = screen.width;
@@ -810,7 +810,7 @@ domReady(function enableCssMediaQueries() {
 
 			width = document.documentElement.clientWidth || document.body.clientWidth; // the latter for IE quirks mode
 			height = document.documentElement.clientHeight || document.body.clientHeight; // the latter for IE quirks mode
-			
+
 			if (valueType === 'absolute') {
 				return (amount === 'portrait') ? (width <= height) : (width > height);
 			}
@@ -824,7 +824,7 @@ domReady(function enableCssMediaQueries() {
 
 			var curRatio = width / height;
 			var ratio = amount[1] / amount[0];
-			
+
 			if (valueType === 'aspect-ratio') {
 				return ((min && curRatio >= ratio) || (max && curRatio < ratio) || (!min && !max && curRatio === ratio));
 			}
@@ -887,7 +887,7 @@ domReady(function enableCssMediaQueries() {
 			return false;
 		}
 	};
-	
+
 	var testMediaQuery = function (mq) {
 		var test = mq.getValid();
 		var expressions = mq.getExpressions();
@@ -900,7 +900,7 @@ domReady(function enableCssMediaQueries() {
 			return (test && !not || not && !test);
 		}
 	};
-	
+
 	var testMediaQueryList = function (mql) {
 		var mqs = mql.getMediaQueries();
 		var t = {};
@@ -922,7 +922,7 @@ domReady(function enableCssMediaQueries() {
 			styles[styles.length] = cssHelper.addStyle('@media ' + s.join('') + '{' + mql.getCssText() + '}', false);
 		}
 	};
-	
+
 	var testMediaQueryLists = function (mqls) {
 		for (var i = 0; i < mqls.length; i++) {
 			testMediaQueryList(mqls[i]);
@@ -942,7 +942,7 @@ domReady(function enableCssMediaQueries() {
 			cssHelper.broadcast('cssMediaQueriesTested');
 		}
 	};
-	
+
 	var test = function () {
 		for (var i = 0; i < styles.length; i++) {
 			cssHelper.removeStyle(styles[i]);
@@ -950,12 +950,12 @@ domReady(function enableCssMediaQueries() {
 		styles = [];
 		cssHelper.mediaQueryLists(testMediaQueryLists);
 	};
-	
+
 	var scrollbarWidth = 0;
 	var checkForResize = function () {
 		var cvpw = cssHelper.getViewportWidth();
 		var cvph = cssHelper.getViewportHeight();
-		
+
 		// determine scrollbar width in IE, see resizeHandler
 		if (ua.ie) {
 			var el = document.createElement('div');
@@ -968,7 +968,7 @@ domReady(function enableCssMediaQueries() {
 			scrollbarWidth = el.offsetWidth - el.clientWidth;
 			document.body.removeChild(el);
 		}
-		
+
 		var timer;
 		var resizeHandler = function () {
 			var vpw = cssHelper.getViewportWidth();
@@ -989,7 +989,7 @@ domReady(function enableCssMediaQueries() {
 				}, 500);
 			}
 		};
-		
+
 		window.onresize = function () {
 			var x = window.onresize || function () {}; // save original
 			return function () {
@@ -998,16 +998,16 @@ domReady(function enableCssMediaQueries() {
 			};
 		}();
 	};
-	
+
 	// prevent jumping of layout by hiding everything before painting <body>
     var docEl = document.documentElement;
 	docEl.style.marginLeft = '-32767px';
-	
+
 	// make sure it comes back after a while
 	setTimeout(function () {
 		docEl.style.marginTop = '';
 	}, 20000);
-	
+
 	return function () {
 		if (!nativeSupport()) { // if browser doesn't support media queries
 			cssHelper.addListener('newStyleParsed', function (el) {
@@ -1039,5 +1039,5 @@ domReady(function enableCssMediaQueries() {
 
 // bonus: hotfix for IE6 SP1 (bug KB823727)
 try {
-	document.execCommand("BackgroundImageCache", false, true); 
+	document.execCommand("BackgroundImageCache", false, true);
 } catch (e) {}
