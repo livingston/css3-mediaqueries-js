@@ -122,7 +122,7 @@ var cssHelper = function () {
 		DECLARATIONS: /[a-zA-Z\-]+[^;]*:[^;]+;/g,
 		RELATIVE_URLS: /url\(['"]?([^\/\)'"][^:\)'"]+)['"]?\)/g,
 		// strip whitespace and comments, @import is evil
-		REDUNDANT_COMPONENTS: /(?:\/\*([^*\\\\]|\*(?!\/))+\*\/|@import[^;]+;|@-moz-document url-prefix\(\) {(([^{}])+{([^{}])+}([^{}])+)+})/g,
+		REDUNDANT_COMPONENTS: /(?:\/\*([^*\\\\]|\*(?!\/))+\*\/|@import[^;]+;|@-moz-document url-prefix\(\)\s*{(([^{}])+{([^{}])+}([^{}])+)+})/g,
 		REDUNDANT_WHITESPACE: /\s*(,|:|;|\{|\})\s*/g,
 		MORE_WHITESPACE: /\s{2,}/g,
 		FINAL_SEMICOLONS: /;\}/g,
