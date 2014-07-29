@@ -1,12 +1,10 @@
 /*
-copyright (c) 2008 Wouter van der Graaf, all rights reserved
-
 css3-mediaqueries.js - CSS Helper and CSS3 Media Queries Enabler
 
-author: Wouter van der Graaf <woutervandergraaf at gmail com>
-version: 0.9 (20091001)
+author: Wouter van der Graaf <wouter at dynora nl>
+version: 1.0 (20110330)
 license: MIT
-website: http://woutervandergraaf.nl/css3-mediaqueries-js/
+website: http://code.google.com/p/css3-mediaqueries-js/
 
 W3C spec: http://www.w3.org/TR/css3-mediaqueries/
 
@@ -98,7 +96,7 @@ var domReady = function () {
 	}
 	window.onload = init; // fallback
 
- return function (fn) { // add fn to init functions
+  return function (fn) { // add fn to init functions
     if (typeof fn === 'function') {
       // If DOM ready has already been fired, fire the function
       // right away.
@@ -113,17 +111,19 @@ var domReady = function () {
   };
 }();
 
+
 // helper library for parsing css to objects
 var cssHelper = function () {
 
 	var regExp = {
-		BLOCKS: /[^\s{][^{]*\{(?:[^{}]*\{[^{}]*\}[^{}]*|[^{}]*)*\}/g,
+		BLOCKS: /[^\s{;][^{;]*\{(?:[^{}]*\{[^{}]*\}[^{}]*|[^{}]*)*\}/g,
 		BLOCKS_INSIDE: /[^\s{][^{]*\{[^{}]*\}/g,
 		DECLARATIONS: /[a-zA-Z\-]+[^;]*:[^;]+;/g,
 		RELATIVE_URLS: /url\(['"]?([^\/\)'"][^:\)'"]+)['"]?\)/g,
 		// strip whitespace and comments, @import is evil
 		REDUNDANT_COMPONENTS: /(?:\/\*([^*\\\\]|\*(?!\/))+\*\/|@import[^;]+;|@-moz-document\s*url-prefix\(\)\s*{(([^{}])+{([^{}])+}([^{}])+)+})/g,
 		REDUNDANT_WHITESPACE: /\s*(,|:|;|\{|\})\s*/g,
+		WHITESPACE_IN_PARENTHESES: /\(\s*(\S*)\s*\)/g,
 		MORE_WHITESPACE: /\s{2,}/g,
 		FINAL_SEMICOLONS: /;\}/g,
 		NOT_WHITESPACE: /\S+/g
@@ -198,14 +198,65 @@ var cssHelper = function () {
 	var sanitize = function (text) {
 		text = text.replace(regExp.REDUNDANT_COMPONENTS, '');
 		text = text.replace(regExp.REDUNDANT_WHITESPACE, '$1');
+        text = text.replace(regExp.WHITESPACE_IN_PARENTHESES, '($1)');
 		text = text.replace(regExp.MORE_WHITESPACE, ' ');
 		text = text.replace(regExp.FINAL_SEMICOLONS, '}'); // optional final semicolons
 		return text;
 	};
 
 	var objects = {
+	    stylesheet: function (el) {
+	        var o = {};
+	        var amqs = [], mqls = [], rs = [], rsw = [];
+	        var s = el.cssHelperText;
 
-		mediaQueryList: function (s) {
+	        // add attribute media queries
+	        var attr = el.getAttribute('media');
+	        if (attr) {
+	            var qts = attr.toLowerCase().split(',')
+	        }
+	        else {
+	            var qts = ['all'] // imply 'all'
+            }
+	        for (var i = 0; i < qts.length; i++) {
+	            amqs[amqs.length] = objects.mediaQuery(qts[i], o);
+	        }
+
+	        // add media query lists and rules (top down order)
+		    var blocks = s.match(regExp.BLOCKS); // @charset is not a block
+		    if (blocks !== null) {
+			    for (var i = 0; i < blocks.length; i++) {
+				    if (blocks[i].substring(0, 7) === '@media ') { // media query (list)
+					    var mql = objects.mediaQueryList(blocks[i], o);
+					    rs = rs.concat(mql.getRules());
+					    mqls[mqls.length] = mql;
+				    }
+				    else { // regular rule set, page context (@page) or font description (@font-face)
+					    rs[rs.length] = rsw[rsw.length] = objects.rule(blocks[i], o, null);
+				    }
+			    }
+		    }
+
+	        o.element = el;
+	        o.getCssText = function () {
+	            return s;
+	        };
+	        o.getAttrMediaQueries = function () {
+	            return amqs;
+	        };
+	        o.getMediaQueryLists = function () {
+	            return mqls;
+	        };
+	        o.getRules = function () {
+	            return rs;
+	        };
+	        o.getRulesWithoutMQ = function () {
+	            return rsw;
+	        };
+	        return o;
+	    },
+
+		mediaQueryList: function (s, stsh) {
 			var o = {};
 			var idx = s.indexOf('{');
 			var lt = s.substring(0, idx);
@@ -222,10 +273,11 @@ var cssHelper = function () {
 			var rts = s.match(regExp.BLOCKS_INSIDE);
 			if (rts !== null) {
 				for (i = 0; i < rts.length; i++) {
-					rs[rs.length] = objects.rule(rts[i], o);
+					rs[rs.length] = objects.rule(rts[i], stsh, o);
 				}
 			}
 
+			o.type = 'mediaQueryList';
 			o.getMediaQueries = function () {
 				return mqs;
 			};
@@ -241,12 +293,22 @@ var cssHelper = function () {
 			return o;
 		},
 
-		mediaQuery: function (s, mql) {
+		mediaQuery: function (s, listOrSheet) {
 			s = s || '';
+			var mql, stsh;
+			if (listOrSheet.type === 'mediaQueryList') {
+			    mql = listOrSheet;
+		    }
+		    else {
+		        stsh = listOrSheet;
+		    }
 			var not = false, type;
-			var exp = [];
+			var expr = [];
 			var valid = true;
 			var tokens = s.match(regExp.NOT_WHITESPACE);
+
+
+
 			for (var i = 0; i < tokens.length; i++) {
 				var token = tokens[i];
 				if (!type && (token === 'not' || token === 'only')) { // 'not' and 'only' keywords
@@ -260,7 +322,7 @@ var cssHelper = function () {
 				}
 				else if (token.charAt(0) === '(') { // media feature expression
 					var pair = token.substring(1, token.length - 1).split(':');
-					exp[exp.length] = {
+					expr[expr.length] = {
 						mediaFeature: pair[0],
 						value: pair[1] || null
 					};
@@ -268,6 +330,12 @@ var cssHelper = function () {
 			}
 
 			return {
+			    getQueryText: function () {
+			        return s;
+			    },
+			    getAttrStyleSheet: function () {
+			        return stsh || null;
+			    },
 				getList: function () {
 					return mql || null;
 				},
@@ -281,12 +349,12 @@ var cssHelper = function () {
 					return type;
 				},
 				getExpressions: function () {
-					return exp;
+					return expr;
 				}
 			};
 		},
 
-		rule: function (s, mql) {
+		rule: function (s, stsh, mql) {
 			var o = {};
 			var idx = s.indexOf('{');
 			var st = s.substring(0, idx);
@@ -297,6 +365,9 @@ var cssHelper = function () {
 				ds[ds.length] = objects.declaration(dts[i], o);
 			}
 
+			o.getStylesheet = function () {
+			    return stsh || null;
+			};
 			o.getMediaQueryList = function () {
 				return mql || null;
 			};
@@ -343,6 +414,7 @@ var cssHelper = function () {
 			return;
 		}
 		var o = {
+		    stylesheet: null,
 			mediaQueryLists: [],
 			rules: [],
 			selectors: {},
@@ -350,23 +422,16 @@ var cssHelper = function () {
 			properties: {}
 		};
 
-		// parse blocks and collect media query lists and rules
-		var mqls = o.mediaQueryLists;
-		var ors = o.rules;
-		var blocks = el.cssHelperText.match(regExp.BLOCKS);
-		if (blocks !== null) {
-			for (var i = 0; i < blocks.length; i++) {
-				if (blocks[i].substring(0, 7) === '@media ') { // media query (list)
-					mqls[mqls.length] = objects.mediaQueryList(blocks[i]);
-					ors = o.rules = ors.concat(mqls[mqls.length - 1].getRules());
-				}
-				else { // regular rule set, page context (@page) or font description (@font-face)
-					ors[ors.length] = objects.rule(blocks[i]);
-				}
-			}
-		}
+		// build stylesheet object
+		var stsh = o.stylesheet = objects.stylesheet(el);
 
-		// collect selectors
+		// collect media query lists
+		var mqls = o.mediaQueryLists = stsh.getMediaQueryLists();
+
+		// collect all rules
+		var ors = o.rules = stsh.getRules();
+
+		// collect all selectors
 		var oss = o.selectors;
 		var collectSelectors = function (r) {
 			var ss = r.getSelectors();
@@ -382,13 +447,13 @@ var cssHelper = function () {
 			collectSelectors(ors[i]);
 		}
 
-		// collect declarations
+		// collect all declarations
 		var ods = o.declarations;
 		for (i = 0; i < ors.length; i++) {
 			ods = o.declarations = ods.concat(ors[i].getDeclarations());
 		}
 
-		// collect properties
+		// collect all properties
 		var ops = o.properties;
 		for (i = 0; i < ods.length; i++) {
 			var n = ods[i].getProperty();
@@ -404,7 +469,9 @@ var cssHelper = function () {
 	};
 
 	var parseEmbedded = function (el, s) {
-		el.cssHelperText = sanitize(s || el.innerHTML); // bug in IE, where innerHTML gives us parsed css instead of raw literal
+	    return;
+	    // This function doesn't work because of a bug in IE, where innerHTML gives us parsed css instead of raw literal.
+		el.cssHelperText = sanitize(s || el.innerHTML);
 		return parseText(el);
 	};
 
@@ -457,6 +524,7 @@ var cssHelper = function () {
 	};
 
 	var types = {
+	    stylesheets: 'array',
 		mediaQueryLists: 'array',
 		rules: 'array',
 		selectors: 'object',
@@ -465,6 +533,7 @@ var cssHelper = function () {
 	};
 
 	var collections = {
+	    stylesheets: null,
 		mediaQueryLists: null,
 		rules: null,
 		selectors: null,
@@ -497,72 +566,58 @@ var cssHelper = function () {
 	var collect = function (name) {
 		collections[name] = (types[name] === 'array') ? [] : {};
 		for (var i = 0; i < parsed.length; i++) {
-			addToCollection(name, parsed[i].cssHelperParsed[name]);
+		    var pname = name === 'stylesheets' ? 'stylesheet' : name; // the exception
+			addToCollection(name, parsed[i].cssHelperParsed[pname]);
 		}
 		return collections[name];
 	};
 
-	// timer for broadcasting added elements
-	domReady(function () {
-		var els = document.body.getElementsByTagName('*');
-		for (var i = 0; i < els.length; i++) {
-			els[i].checkedByCssHelper = true;
-		}
-
-		if (document.implementation.hasFeature('MutationEvents', '2.0') || window.MutationEvent) {
-			document.body.addEventListener('DOMNodeInserted', function (e) {
-				var el = e.target;
-				if (el.nodeType === 1) {
-					broadcast('DOMElementInserted', el);
-					el.checkedByCssHelper = true;
-				}
-			}, false);
-		}
-		else {
-			setInterval(function () {
-				var els = document.body.getElementsByTagName('*');
-				for (var i = 0; i < els.length; i++) {
-					if (!els[i].checkedByCssHelper) {
-						broadcast('DOMElementInserted', els[i]);
-						els[i].checkedByCssHelper = true;
-					}
-				}
-			}, 1000);
-		}
-	});
-
 	// viewport size
 	var getViewportSize = function (d) {
 		if (typeof window.innerWidth != 'undefined') {
-			return window["inner" + d];
+			return window['inner' + d];
 		}
-		else if (typeof document.documentElement != 'undefined'
-				&& typeof document.documentElement.clientWidth != 'undefined'
+		else if (typeof document.documentElement !== 'undefined'
+				&& typeof document.documentElement.clientWidth !== 'undefined'
 				&& document.documentElement.clientWidth != 0) {
-			return document.documentElement["client" + d];
+			return document.documentElement['client' + d];
 		}
 	};
 
 	// public static functions
 	return {
-		addStyle: function (s, process) {
+		addStyle: function (s, mediaTypes, process) {
 			var el;
-		            if (null !== document.getElementById('css-mediaqueries-js')) {
-		                el = document.getElementById('css-mediaqueries-js');
-		            }
-		            else {
-		                el = document.createElement('style');
-		                el.setAttribute('type', 'text/css');
-		                el.setAttribute('id', 'css-mediaqueries-js');
-		                document.getElementsByTagName('head')[0].appendChild(el);
-		            }
-		            if (el.styleSheet) { // IE
-		                el.styleSheet.cssText += s;
-		            }
-		            else {
-		                el.appendChild(document.createTextNode(s));
-		            }
+			var styleElId = 'css-mediaqueries-js';
+			var styleMedia = '';
+
+			var styleEl = document.getElementById(styleElId);
+
+			if (mediaTypes && mediaTypes.length > 0) {
+			    styleMedia = mediaTypes.join(',');
+					styleElId += styleMedia;
+			}
+
+      if (null !== styleEl) {
+          el = styleEl;
+      }
+      else {
+          el = document.createElement('style');
+          el.setAttribute('type', 'text/css');
+          el.setAttribute('id', styleElId);
+          el.setAttribute('media', styleMedia);
+          document.getElementsByTagName('head')[0].appendChild(el);
+      }
+
+      if (el.styleSheet) { // IE
+          el.styleSheet.cssText += s;
+      }
+      else {
+	        el.appendChild(document.createTextNode(s));
+      }
+
 			el.addedWithCssHelper = true;
+
 			if (typeof process === 'undefined' || process === true) {
 				cssHelper.parsed(function (parsed) {
 					var o = parseEmbedded(el, s);
@@ -582,7 +637,7 @@ var cssHelper = function () {
 
 		removeStyle: function (el) {
 			if (el.parentNode)
-                		return el.parentNode.removeChild(el);
+				return el.parentNode.removeChild(el);
 		},
 
 		parsed: function (fn) {
@@ -600,6 +655,12 @@ var cssHelper = function () {
 					parse();
 				}
 			}
+		},
+
+		stylesheets: function (fn) {
+		    cssHelper.parsed(function (parsed) {
+		        fn(collections.stylesheets || collect('stylesheets'));
+		    });
 		},
 
 		mediaQueryLists: function (fn) {
@@ -658,11 +719,11 @@ var cssHelper = function () {
 		},
 
 		getViewportWidth: function () {
-			return getViewportSize("Width");
+			return getViewportSize('Width');
 		},
 
 		getViewportHeight: function () {
-			return getViewportSize("Height");
+			return getViewportSize('Height');
 		}
 	};
 }();
@@ -688,7 +749,7 @@ domReady(function enableCssMediaQueries() {
 		var el = document.createElement('div');
 		el.id = id;
 		var style = cssHelper.addStyle('@media all and (width) { #' + id +
-			' { width: 1px !important; } }', false); // false means don't parse this temp style
+			' { width: 1px !important; } }', [], false); // false means don't parse this temp style
 		document.body.appendChild(el);
 		var ret = el.offsetWidth === 1;
 		style.parentNode.removeChild(style);
@@ -899,14 +960,30 @@ domReady(function enableCssMediaQueries() {
 			var not = mq.getNot();
 			return (test && !not || not && !test);
 		}
+		return test;
 	};
 
-	var testMediaQueryList = function (mql) {
+	var testMediaQueryList = function (mql, ts) {
+	    // ts is null or an array with any media type but 'all'.
 		var mqs = mql.getMediaQueries();
 		var t = {};
 		for (var i = 0; i < mqs.length; i++) {
-			if (testMediaQuery(mqs[i])) {
-				t[mqs[i].getMediaType()] = true;
+		    var type = mqs[i].getMediaType();
+		    if (mqs[i].getExpressions().length === 0) {
+		        continue;
+		        // TODO: Browser check! Assuming old browsers do apply the bare media types, even in a list with media queries.
+		    }
+		    var typeAllowed = true;
+		    if (type !== 'all' && ts && ts.length > 0) {
+		        typeAllowed = false;
+		        for (var j = 0; j < ts.length; j++) {
+		            if (ts[j] === type) {
+		                typeAllowed = true;
+                    }
+		        }
+		    }
+			if (typeAllowed && testMediaQuery(mqs[i])) {
+				t[type] = true;
 			}
 		}
 		var s = [], c = 0;
@@ -919,15 +996,57 @@ domReady(function enableCssMediaQueries() {
 			}
 		}
 		if (s.length > 0) {
-			styles[styles.length] = cssHelper.addStyle('@media ' + s.join('') + '{' + mql.getCssText() + '}', false);
+			styles[styles.length] = cssHelper.addStyle('@media ' + s.join('') + '{' + mql.getCssText() + '}', ts, false);
 		}
 	};
 
-	var testMediaQueryLists = function (mqls) {
+	var testMediaQueryLists = function (mqls, ts) {
 		for (var i = 0; i < mqls.length; i++) {
-			testMediaQueryList(mqls[i]);
+			testMediaQueryList(mqls[i], ts);
 		}
-		if (ua.ie) {
+	};
+
+	var testStylesheet = function (stsh) {
+	    var amqs = stsh.getAttrMediaQueries();
+	    var allPassed = false;
+	    var t = {};
+		for (var i = 0; i < amqs.length; i++) {
+			if (testMediaQuery(amqs[i])) {
+				t[amqs[i].getMediaType()] = amqs[i].getExpressions().length > 0;
+			}
+		}
+		var ts = [], tswe = [];
+		for (var n in t) {
+			if (t.hasOwnProperty(n)) {
+				ts[ts.length] = n;
+				if (t[n]) {
+				    tswe[tswe.length] = n
+				}
+			    if (n === 'all') {
+			        allPassed = true;
+                }
+			}
+		}
+		if (tswe.length > 0) { // types with query expressions that passed the test
+		    styles[styles.length] = cssHelper.addStyle(stsh.getCssText(), tswe, false);
+		}
+		var mqls = stsh.getMediaQueryLists();
+		if (allPassed) {
+		    // If 'all' in media attribute passed the test, then test all @media types in linked CSS and create style with those types.
+		    testMediaQueryLists(mqls);
+		}
+		else {
+		    // Or else, test only media attribute types that passed the test and also 'all'.
+		    // For positive '@media all', create style with attribute types that passed their test.
+		    testMediaQueryLists(mqls, ts);
+	    }
+    };
+
+	var testStylesheets = function (stshs) {
+	    for (var i = 0; i < stshs.length; i++) {
+	        testStylesheet(stshs[i]);
+	    }
+	    if (ua.ie) {
 			// force repaint in IE
 			document.documentElement.style.display = 'block';
 			setTimeout(function () {
@@ -948,7 +1067,7 @@ domReady(function enableCssMediaQueries() {
 			cssHelper.removeStyle(styles[i]);
 		}
 		styles = [];
-		cssHelper.mediaQueryLists(testMediaQueryLists);
+		cssHelper.stylesheets(testStylesheets);
 	};
 
 	var scrollbarWidth = 0;
@@ -959,8 +1078,6 @@ domReady(function enableCssMediaQueries() {
 		// determine scrollbar width in IE, see resizeHandler
 		if (ua.ie) {
 			var el = document.createElement('div');
-			el.style.width = '100px';
-			el.style.height = '100px';
 			el.style.position = 'absolute';
 			el.style.top = '-9999em';
 			el.style.overflow = 'scroll';
@@ -1005,13 +1122,13 @@ domReady(function enableCssMediaQueries() {
 
 	// make sure it comes back after a while
 	setTimeout(function () {
-		docEl.style.marginTop = '';
-	}, 20000);
+		docEl.style.marginLeft = '';
+	}, 5000);
 
 	return function () {
 		if (!nativeSupport()) { // if browser doesn't support media queries
 			cssHelper.addListener('newStyleParsed', function (el) {
-				testMediaQueryLists(el.cssHelperParsed.mediaQueryLists);
+				testStylesheet(el.cssHelperParsed.stylesheet);
 			});
 			// return visibility after media queries are tested
 			cssHelper.addListener('cssMediaQueriesTested', function () {
@@ -1039,5 +1156,5 @@ domReady(function enableCssMediaQueries() {
 
 // bonus: hotfix for IE6 SP1 (bug KB823727)
 try {
-	document.execCommand("BackgroundImageCache", false, true);
+	document.execCommand('BackgroundImageCache', false, true);
 } catch (e) {}

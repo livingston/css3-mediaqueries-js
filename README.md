@@ -1,15 +1,10 @@
 ### *css3-mediaqueries.js* - CSS Helper and CSS3 Media Queries Enabler
 
-*copyright (c) 2008 Wouter van der Graaf, all rights reserved*
-
-***Author:*** Wouter van der Graaf <woutervandergraaf at gmail com>
-
+***Author:*** Wouter van der Graaf <wouter at dynora nl>
 ***License:*** MIT
-
-***Website:*** ~~<http://woutervandergraaf.nl/css3-mediaqueries-js/>~~
+***Website:*** <http://code.google.com/p/css3-mediaqueries-js/>
 
 ***Browser support:*** IE 5+, Firefox 1+ and Safari 2.
-
 Firefox 3.5+, Opera 7+, Safari 3+ and Chrome already offer native support.
 
 #### W3C Media Queries spec: <http://www.w3.org/TR/css3-mediaqueries/>
@@ -23,4 +18,4 @@ Write your media queries like you would for browsers with native support. The sc
 
 >Note: Doesn't work on `@import`'ed stylesheets (which you shouldn't use anyway for performance reasons). Also won't listen to the media attribute of the &lt;link&gt; and &lt;style&gt; elements.
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/livingston/css3-mediaqueries-js/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+####Note: this fork has patches/fixes that are not available in the original Google Code repo
