@@ -1,10 +1,13 @@
 ### *css3-mediaqueries.js* - CSS Helper and CSS3 Media Queries Enabler
 
 ***Author:*** Wouter van der Graaf <wouter at dynora nl>
+
 ***License:*** MIT
+
 ***Website:*** <http://code.google.com/p/css3-mediaqueries-js/>
 
 ***Browser support:*** IE 5+, Firefox 1+ and Safari 2.
+
 Firefox 3.5+, Opera 7+, Safari 3+ and Chrome already offer native support.
 
 #### W3C Media Queries spec: <http://www.w3.org/TR/css3-mediaqueries/>
