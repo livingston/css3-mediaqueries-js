@@ -1,6 +1,6 @@
 ### *css3-mediaqueries.js* - CSS Helper and CSS3 Media Queries Enabler
 
-***Author:*** Wouter van der Graaf <wouter at dynora nl>
+***Author:*** [Wouter van der Graaf](https://github.com/woutervandergraaf)
 
 ***License:*** MIT
 
