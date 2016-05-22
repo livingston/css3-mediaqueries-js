@@ -1,0 +1,20 @@
+{
+  "name": "css3-mediaqueries-js",
+  "description": "Write your media queries like you would for browsers with native support.",
+  "version": "1.0.0",
+  "homepage": "http://code.google.com/p/css3-mediaqueries-js/",
+  "author": {
+    "name": "Wouter van der Graaf",
+    "url": "https://github.com/woutervandergraaf"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/livingston/css3-mediaqueries-js"
+  },
+  "keywords": [
+    "CSS Helper",
+    "Media Queries",
+    "CSS3"
+  ],
+  "license": "MIT"
+}
